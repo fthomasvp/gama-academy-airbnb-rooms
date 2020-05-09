@@ -29,4 +29,5 @@ Explore sua criatividade :) - não esperamos uma tela cópia do Airbnb, ok? Mas 
 
 Suba o repositório no GitHub e sugerimos o Netlify para hospedagem."
 
-### Go to Page
+## Go to Page
+[Clique para ver o resultado](https://staybnb.netlify.app)
