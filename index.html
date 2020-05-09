@@ -34,7 +34,54 @@
 
     <!-- Main area -->
     <main class="container">
-      <div class="container">
+      <div class="container mb-3">
+        <div id="filterPlaces" class="input-group">
+          <div class="input-group-prepend">
+            <label class="input-group-text" for="propertyType"
+              >Tipo de lugar (opcional)</label
+            >
+          </div>
+          <select class="custom-select mr-3" id="propertyType">
+            <option selected>Escolha...</option>
+            <option value="1">Apartamento</option>
+            <option value="2">Casa</option>
+            <option value="3">Chácara</option>
+            <option value="4">Estúdio</option>
+            <option value="5">Loft</option>
+            <option value="6">Quarto</option>
+            <option value="7">Sítio</option>
+          </select>
+
+          <div class="input-group-prepend">
+            <span class="input-group-text" id="checkIn">Check-in</span>
+          </div>
+          <input
+            id="dateCheckIn"
+            type="date"
+            class="form-control mr-3"
+            aria-describedby="checkIn"
+          />
+
+          <div class="input-group-prepend">
+            <span class="input-group-text" id="checkOut">Check-out</span>
+          </div>
+          <input
+            id="dateCheckOut"
+            type="date"
+            class="form-control mr-3"
+            aria-describedby="checkOut"
+          />
+
+          <button
+            type="button"
+            class="btn btn-primary mr-1"
+            onclick="filterBeforeRequest();"
+          >
+            Buscar
+          </button>
+        </div>
+      </div>
+      <div id="containerCardList" class="container">
         <div id="cardList" class="row"></div>
       </div>
     </main>
@@ -51,18 +98,111 @@
 
     <!-- Functions -->
     <script>
-      // Display cards after page is loaded
       window.addEventListener("load", function () {
-        requestData();
+        // Do NOT insert previous dates
+        let dateCheckIn = document.getElementById("dateCheckIn");
+        dateCheckIn.setAttribute("min", new Date().toISOString().split("T")[0]);
+
+        let dateCheckOut = document.getElementById("dateCheckOut");
+        dateCheckOut.setAttribute(
+          "min",
+          new Date().toISOString().split("T")[0]
+        );
       });
 
-      function requestData() {
+      function filterBeforeRequest() {
+        let cardFilters = document.getElementById("filterPlaces");
+
+        let inputFields = cardFilters.getElementsByTagName("input");
+        let dateCheckIn = {
+          dateAsText: inputFields.dateCheckIn.value,
+          dateAsNumber: inputFields.dateCheckIn.valueAsNumber,
+        };
+        let dateCheckOut = {
+          dateAsText: inputFields.dateCheckOut.value,
+          dateAsNumber: inputFields.dateCheckOut.valueAsNumber,
+        };
+
+        let selectedPropertyType = cardFilters.getElementsByTagName("select")
+          .propertyType.selectedOptions[0].text;
+
+        if (selectedPropertyType === "Escolha...") {
+          selectedPropertyType = "";
+        }
+
+        if (dateCheckIn.dateAsText !== "" && dateCheckOut.dateAsText !== "") {
+          // Hide warn message (if is already been displayed)
+          let displayWarn = document.getElementById("displayWarn");
+          if (displayWarn) {
+            displayWarn.classList.add("d-none");
+          }
+
+          let filters = {
+            dateCheckIn,
+            dateCheckOut,
+            selectedPropertyType,
+          };
+
+          requestData(filters);
+        } else {
+          // This is necessary to not show more than 1 warn message simultaneously
+          if (!document.getElementById("displayWarn")) {
+            let containerCardList = document.getElementById(
+              "containerCardList"
+            );
+
+            let displayWarn = document.createElement("div");
+            displayWarn.setAttribute("id", "displayWarn");
+            displayWarn.setAttribute(
+              "class",
+              "alert alert-warning alert-dismissible fade show"
+            );
+            displayWarn.setAttribute("role", "alert");
+            displayWarn.innerHTML =
+              "Os campos de <strong>Check-in</strong> e <strong>Check-out</strong> são obrigatórios";
+
+            let closeWarn = document.createElement("button");
+            closeWarn.setAttribute("type", "button");
+            closeWarn.setAttribute("class", "close");
+            closeWarn.setAttribute("data-dismiss", "alert");
+            closeWarn.setAttribute("aria-label", "Close");
+            closeWarn.innerHTML = `<span aria-hidden="true">&times;</span>`;
+
+            displayWarn.appendChild(closeWarn);
+
+            containerCardList.appendChild(displayWarn);
+          }
+        }
+      }
+
+      function requestData(filters) {
         const DONE = 4;
 
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
           if (xhr.readyState === DONE) {
-            const data = xhr.response;
+            let data = xhr.response;
+
+            // Filter by Property Type
+            if (filters.selectedPropertyType !== "") {
+              data = data.filter(function (place) {
+                return place.property_type === filters.selectedPropertyType;
+              });
+            }
+
+            // Add total value based on date range
+            data = data.map(function (place) {
+              const diffBetweenDates = Math.abs(
+                filters.dateCheckOut.dateAsNumber -
+                  filters.dateCheckIn.dateAsNumber
+              );
+              const qtyDays =
+                Math.ceil(diffBetweenDates / (1000 * 60 * 60 * 24)) || 1;
+
+              place.totalPrice = place.price * qtyDays;
+
+              return place;
+            });
 
             displayCards(data);
           }
@@ -70,7 +210,7 @@
 
         xhr.onerror = function () {
           alert("Ocorreu um probleminha durante a requisição!");
-          console.log("Request error", this);
+          console.error("Request error", this);
         };
 
         xhr.open("GET", "assets/mock-data/airbnb.json");
@@ -95,10 +235,16 @@
       function displayCards(data) {
         let cardList = document.getElementById("cardList");
 
+        // Clear before show cards
+        cardList.innerHTML = "";
+
         const dataSize = data.length;
         for (let i = 0; i < dataSize; i++) {
           let card = document.createElement("div");
-          card.setAttribute("class", "card col-sm-12 col-md-6 col-lg-4 mb-3");
+          card.setAttribute(
+            "class",
+            "card col-sm-12 col-md-6 col-lg-4 mb-3 p-0"
+          );
 
           let cardImage = document.createElement("img");
           cardImage.setAttribute("class", "card-img-top");
@@ -121,8 +267,16 @@
 
           let priceColor = changeColorBy(data[i].price);
           let cardTextPrice = document.createElement("p");
-          cardTextPrice.setAttribute("class", "card-text");
-          cardTextPrice.innerHTML = `<span style="color: ${priceColor}; font-weight: bold;">R$ ${data[i].price}/noite</span>`;
+          cardTextPrice.setAttribute(
+            "class",
+            "card-text d-flex justify-content-between"
+          );
+          cardTextPrice.innerHTML = `<span style="color: ${priceColor}; font-weight: bold;">R$ ${data[
+            i
+          ].price.toLocaleString()}/noite</span>`;
+          cardTextPrice.innerHTML += `<span class="animatedPrice" style="border: 1px solid #222; border-radius: 3px; padding: 5px;">Total R$ ${data[
+            i
+          ].totalPrice.toLocaleString()}</span>`;
 
           cardBody.appendChild(cardTitle);
           cardBody.appendChild(cardTextPropertyType);
