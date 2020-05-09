@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="assets/css/bootstrap-reboot.min.css" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+
+    <title>Staybnb</title>
+
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  </head>
+  <body>
+    <!-- Header area -->
+    <header class="container mb-3">
+      <nav class="navbar navbar-light bg-light justify-content-sm-center">
+        <a class="navbar-brand" href="#">
+          <img
+            src="assets/images/gama-academy-logo.png"
+            width="30"
+            height="30"
+            class="d-inline-block align-top"
+            alt="Gama Academy Logo"
+          />
+          Staybnb
+        </a>
+      </nav>
+    </header>
+
+    <!-- Main area -->
+    <main class="container">
+      <div class="container">
+        <div id="cardList" class="row"></div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="container mb-3">
+      <div class="dropdown-divider"></div>
+      <div class="row">
+        <div class="col-12 text-center">
+          &copy; 2020 fthomasvp
+        </div>
+      </div>
+    </footer>
+
+    <!-- Functions -->
+    <script>
+      // Display cards after page is loaded
+      window.addEventListener("load", function () {
+        requestData();
+      });
+
+      function requestData() {
+        const DONE = 4;
+
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === DONE) {
+            const data = xhr.response;
+
+            displayCards(data);
+          }
+        };
+
+        xhr.onerror = function () {
+          alert("Ocorreu um probleminha durante a requisição!");
+          console.log("Request error", this);
+        };
+
+        xhr.open("GET", "assets/mock-data/airbnb.json");
+        xhr.responseType = "json";
+        xhr.send();
+      }
+
+      function changeColorBy(price) {
+        let color = "";
+
+        if (price < 100) {
+          color = "#66C138";
+        } else if (price < 200) {
+          color = "#B9B900";
+        } else {
+          color = "red";
+        }
+
+        return color;
+      }
+
+      function displayCards(data) {
+        let cardList = document.getElementById("cardList");
+
+        const dataSize = data.length;
+        for (let i = 0; i < dataSize; i++) {
+          let card = document.createElement("div");
+          card.setAttribute("class", "card col-sm-12 col-md-6 col-lg-4 mb-3");
+
+          let cardImage = document.createElement("img");
+          cardImage.setAttribute("class", "card-img-top");
+          cardImage.setAttribute("width", "300");
+          cardImage.setAttribute("height", "200");
+          cardImage.setAttribute("src", data[i].photo);
+          cardImage.setAttribute("alt", "About the place");
+
+          let cardBody = document.createElement("div");
+          cardBody.setAttribute("class", "card-body");
+
+          let cardTitle = document.createElement("h5");
+          cardTitle.setAttribute("class", "card-title");
+          cardTitle.setAttribute("style", "height: 48px;");
+          cardTitle.innerText = data[i].name;
+
+          let cardTextPropertyType = document.createElement("p");
+          cardTextPropertyType.setAttribute("class", "card-text");
+          cardTextPropertyType.innerText = data[i].property_type;
+
+          let priceColor = changeColorBy(data[i].price);
+          let cardTextPrice = document.createElement("p");
+          cardTextPrice.setAttribute("class", "card-text");
+          cardTextPrice.innerHTML = `<span style="color: ${priceColor}; font-weight: bold;">R$ ${data[i].price}/noite</span>`;
+
+          cardBody.appendChild(cardTitle);
+          cardBody.appendChild(cardTextPropertyType);
+          cardBody.appendChild(cardTextPrice);
+
+          card.appendChild(cardImage);
+          card.appendChild(cardBody);
+
+          cardList.appendChild(card);
+        }
+      }
+    </script>
+
+    <script src="assets/js/jquery-3.5.1.min.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
