@@ -1,0 +1,9 @@
+@keyframes displayPrice {
+  0% {
+    transform: translateX(-200px);
+  }
+}
+
+.animatedPrice {
+  animation: displayPrice 0.5s 1 0s ease-out;
+}
