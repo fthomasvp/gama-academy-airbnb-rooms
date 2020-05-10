@@ -86,7 +86,11 @@
 
         <div id="cardList" class="row"></div>
 
-        <nav aria-label="Page navigation">
+        <nav
+          id="paginationNavigator"
+          aria-label="Page navigation"
+          class="d-none"
+        >
           <ul class="pagination justify-content-center">
             <li class="page-item" onclick="handleClickPagination(this)">
               <a class="page-link" href="#">Voltar</a>
@@ -321,6 +325,12 @@
       */
       function displayCards(pageable) {
         let cardList = document.getElementById("cardList");
+        
+        let paginationNavigator = document.getElementById(
+          "paginationNavigator"
+        );
+
+        paginationNavigator.classList.remove("d-none");
 
         // Clear before show cards
         cardList.innerHTML = "";
