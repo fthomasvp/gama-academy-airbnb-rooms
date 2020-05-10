@@ -75,7 +75,7 @@
           <button
             type="button"
             class="btn btn-primary mr-1"
-            onclick="filterBeforeRequest();"
+            onclick="requestData();"
           >
             Buscar
           </button>
@@ -83,6 +83,17 @@
       </div>
       <div id="containerCardList" class="container">
         <div id="cardList" class="row"></div>
+
+        <nav aria-label="Page navigation">
+          <ul class="pagination justify-content-center">
+            <li class="page-item" onclick="handleClickPagination(this)">
+              <a class="page-link" href="#">Voltar</a>
+            </li>
+            <li class="page-item" onclick="handleClickPagination(this)">
+              <a class="page-link" href="#">Próximo</a>
+            </li>
+          </ul>
+        </nav>
       </div>
     </main>
 
@@ -110,7 +121,7 @@
         );
       });
 
-      function filterBeforeRequest() {
+      function getFilters() {
         let cardFilters = document.getElementById("filterPlaces");
 
         let inputFields = cardFilters.getElementsByTagName("input");
@@ -143,9 +154,9 @@
             selectedPropertyType,
           };
 
-          requestData(filters);
+          return filters;
         } else {
-          // This is necessary to not show more than 1 warn message simultaneously
+          // This is necessary to NOT show more than 1 warn simultaneously
           if (!document.getElementById("displayWarn")) {
             let containerCardList = document.getElementById(
               "containerCardList"
@@ -175,70 +186,145 @@
         }
       }
 
-      function requestData(filters) {
+      function requestData() {
         const DONE = 4;
 
-        var xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === DONE) {
-            let data = xhr.response;
+        let filters = getFilters();
 
-            // Filter by Property Type
-            if (filters.selectedPropertyType !== "") {
-              data = data.filter(function (place) {
-                return place.property_type === filters.selectedPropertyType;
+        if (filters && filters.dateCheckIn && filters.dateCheckOut) {
+          let xhr = new XMLHttpRequest();
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState === DONE) {
+              let data = xhr.response;
+
+              // Filter by Property Type
+              if (filters.selectedPropertyType !== "") {
+                data = data.filter(function (place) {
+                  return place.property_type === filters.selectedPropertyType;
+                });
+              }
+
+              // Add total value based on date range
+              data = data.map(function (place) {
+                const diffBetweenDates = Math.abs(
+                  filters.dateCheckOut.dateAsNumber -
+                    filters.dateCheckIn.dateAsNumber
+                );
+                const qtyDays =
+                  Math.ceil(diffBetweenDates / (1000 * 60 * 60 * 24)) || 1;
+
+                place.totalPrice = place.price * qtyDays;
+
+                return place;
               });
-            }
 
-            // Add total value based on date range
-            data = data.map(function (place) {
-              const diffBetweenDates = Math.abs(
-                filters.dateCheckOut.dateAsNumber -
-                  filters.dateCheckIn.dateAsNumber
+              let currentPage = 1;
+              let paginationInfo = JSON.parse(
+                sessionStorage.getItem("paginationInfo")
               );
-              const qtyDays =
-                Math.ceil(diffBetweenDates / (1000 * 60 * 60 * 24)) || 1;
 
-              place.totalPrice = place.price * qtyDays;
+              if (paginationInfo) {
+                currentPage = paginationInfo.currentPage;
+              }
 
-              return place;
-            });
+              let paginatedData = paginateData(data, currentPage);
 
-            displayCards(data);
-          }
-        };
+              displayCards(paginatedData);
+            }
+          };
 
-        xhr.onerror = function () {
-          alert("Ocorreu um probleminha durante a requisição!");
-          console.error("Request error", this);
-        };
+          xhr.onerror = function () {
+            alert("Ocorreu um probleminha durante a requisição!");
+            console.error("Request error", this);
+          };
 
-        xhr.open("GET", "assets/mock-data/airbnb.json");
-        xhr.responseType = "json";
-        xhr.send();
-      }
-
-      function changeColorBy(price) {
-        let color = "";
-
-        if (price < 100) {
-          color = "#66C138";
-        } else if (price < 200) {
-          color = "#B9B900";
-        } else {
-          color = "red";
+          xhr.open("GET", "assets/mock-data/airbnb.json");
+          xhr.responseType = "json";
+          xhr.send();
         }
-
-        return color;
       }
 
-      function displayCards(data) {
+      /**
+        Pagination's logic
+      */
+      function handleClickPagination(pageButton) {
+        let pageAction = pageButton.innerText;
+
+        let paginationInfo = JSON.parse(
+          sessionStorage.getItem("paginationInfo")
+        );
+
+        if (pageAction === "Voltar") {
+          if (paginationInfo && paginationInfo.currentPage > 1) {
+            paginationInfo.currentPage = paginationInfo.currentPage - 1;
+
+            sessionStorage.setItem(
+              "paginationInfo",
+              JSON.stringify(paginationInfo)
+            );
+
+            requestData();
+          } else {
+            // Exibir Warning (bootstrap)
+            alert("Não é possível Voltar para uma página anterior a inicial");
+          }
+        } else {
+          if (
+            paginationInfo &&
+            paginationInfo.currentPage < paginationInfo.totalPages
+          ) {
+            paginationInfo.currentPage = paginationInfo.currentPage + 1;
+
+            sessionStorage.setItem(
+              "paginationInfo",
+              JSON.stringify(paginationInfo)
+            );
+
+            requestData();
+          } else {
+            // Exibir Warning (bootstrap)
+            alert("Não é possível Avançar para uma página além da última");
+          }
+        }
+      }
+
+      function qtyOfPages(data, itemsByPage = 6) {
+        return Math.ceil(data.length / itemsByPage);
+      }
+
+      function paginateData(data, currentPage = 1, itemsByPage = 6) {
+        const totalPages = qtyOfPages(data); // Maybe doing inline
+
+        const initialIndex = (currentPage - 1) * itemsByPage;
+        const finalIndex = initialIndex + itemsByPage;
+
+        const pageable = {
+          data: data.slice(initialIndex, finalIndex),
+          currentPage,
+          totalPages,
+        };
+
+        // Store Pagination info in Session Storage
+        sessionStorage.setItem(
+          "paginationInfo",
+          JSON.stringify({ currentPage, totalPages })
+        );
+
+        return pageable;
+      }
+
+      /**
+        Show Cards on the screen
+      */
+      function displayCards(pageable) {
         let cardList = document.getElementById("cardList");
 
         // Clear before show cards
         cardList.innerHTML = "";
 
+        const data = pageable.data;
         const dataSize = data.length;
+
         for (let i = 0; i < dataSize; i++) {
           let card = document.createElement("div");
           card.setAttribute(
@@ -265,7 +351,7 @@
           cardTextPropertyType.setAttribute("class", "card-text");
           cardTextPropertyType.innerText = data[i].property_type;
 
-          let priceColor = changeColorBy(data[i].price);
+          let priceColor = changeTextColorBy(data[i].price);
           let cardTextPrice = document.createElement("p");
           cardTextPrice.setAttribute(
             "class",
@@ -287,6 +373,20 @@
 
           cardList.appendChild(card);
         }
+      }
+
+      function changeTextColorBy(price) {
+        let color = "";
+
+        if (price < 100) {
+          color = "#66C138";
+        } else if (price < 200) {
+          color = "#B9B900";
+        } else {
+          color = "red";
+        }
+
+        return color;
       }
     </script>
 
