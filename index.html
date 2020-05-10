@@ -167,6 +167,9 @@
                 "Os campos de <strong>Check-in</strong> e <strong>Check-out</strong> são obrigatórios",
             };
 
+            // Clear Session storage in case the user still on the page
+            sessionStorage.clear();
+
             displayCustomAlert(information);
           }
         }
