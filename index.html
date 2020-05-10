@@ -81,7 +81,9 @@
           </button>
         </div>
       </div>
-      <div id="containerCardList" class="container">
+      <div class="container">
+        <div id="displayAlertContainer" class="container"></div>
+
         <div id="cardList" class="row"></div>
 
         <nav aria-label="Page navigation">
@@ -143,9 +145,9 @@
 
         if (dateCheckIn.dateAsText !== "" && dateCheckOut.dateAsText !== "") {
           // Hide warn message (if is already been displayed)
-          let displayWarn = document.getElementById("displayWarn");
-          if (displayWarn) {
-            displayWarn.classList.add("d-none");
+          let inputWarn = document.getElementById("inputWarn");
+          if (inputWarn) {
+            inputWarn.classList.add("d-none");
           }
 
           let filters = {
@@ -156,32 +158,16 @@
 
           return filters;
         } else {
-          // This is necessary to NOT show more than 1 warn simultaneously
-          if (!document.getElementById("displayWarn")) {
-            let containerCardList = document.getElementById(
-              "containerCardList"
-            );
+          // This is necessary to NOT show more than 1 input warn simultaneously
+          if (!document.getElementById("inputWarn")) {
+            const information = {
+              id: "inputWarn",
+              type: "alert-warning",
+              htmlMessage:
+                "Os campos de <strong>Check-in</strong> e <strong>Check-out</strong> são obrigatórios",
+            };
 
-            let displayWarn = document.createElement("div");
-            displayWarn.setAttribute("id", "displayWarn");
-            displayWarn.setAttribute(
-              "class",
-              "alert alert-warning alert-dismissible fade show"
-            );
-            displayWarn.setAttribute("role", "alert");
-            displayWarn.innerHTML =
-              "Os campos de <strong>Check-in</strong> e <strong>Check-out</strong> são obrigatórios";
-
-            let closeWarn = document.createElement("button");
-            closeWarn.setAttribute("type", "button");
-            closeWarn.setAttribute("class", "close");
-            closeWarn.setAttribute("data-dismiss", "alert");
-            closeWarn.setAttribute("aria-label", "Close");
-            closeWarn.innerHTML = `<span aria-hidden="true">&times;</span>`;
-
-            displayWarn.appendChild(closeWarn);
-
-            containerCardList.appendChild(displayWarn);
+            displayCustomAlert(information);
           }
         }
       }
@@ -265,8 +251,17 @@
 
             requestData();
           } else {
-            // Exibir Warning (bootstrap)
-            alert("Não é possível Voltar para uma página anterior a inicial");
+            // This is necessary to NOT show more than 1 alert info simultaneously
+            if (!document.getElementById("lowerPaginationInfo")) {
+              const information = {
+                id: "lowerPaginationInfo",
+                type: "alert-info",
+                htmlMessage:
+                  "Não é possível <strong>Voltar</strong> para uma página anterior a inicial",
+              };
+
+              displayCustomAlert(information);
+            }
           }
         } else {
           if (
@@ -282,18 +277,23 @@
 
             requestData();
           } else {
-            // Exibir Warning (bootstrap)
-            alert("Não é possível Avançar para uma página além da última");
+            // This is necessary to NOT show more than 1 alert info simultaneously
+            if (!document.getElementById("higherPaginationInfo")) {
+              const information = {
+                id: "higherPaginationInfo",
+                type: "alert-info",
+                htmlMessage:
+                  "Não é possível <strong>Avançar</strong> para uma página além da última",
+              };
+
+              displayCustomAlert(information);
+            }
           }
         }
       }
 
-      function qtyOfPages(data, itemsByPage = 6) {
-        return Math.ceil(data.length / itemsByPage);
-      }
-
       function paginateData(data, currentPage = 1, itemsByPage = 6) {
-        const totalPages = qtyOfPages(data); // Maybe doing inline
+        const totalPages = Math.ceil(data.length / itemsByPage);
 
         const initialIndex = (currentPage - 1) * itemsByPage;
         const finalIndex = initialIndex + itemsByPage;
@@ -387,6 +387,41 @@
         }
 
         return color;
+      }
+
+      /**
+        information: {
+          id: string,
+          type: 'alert-primary' | 'alert-secondary' | 'alert-success' |
+              'alert-danger' | 'alert-warning' | 'alert-info' |
+              'alert-light' | 'alert-dark',
+          htmlMessage: string,
+        }
+      */
+      function displayCustomAlert(information) {
+        let displayAlertContainer = document.getElementById(
+          "displayAlertContainer"
+        );
+
+        let displayAlert = document.createElement("div");
+        displayAlert.setAttribute("id", information.id);
+        displayAlert.setAttribute(
+          "class",
+          `alert ${information.type} alert-dismissible fade show`
+        );
+        displayAlert.setAttribute("role", "alert");
+        displayAlert.innerHTML = information.htmlMessage;
+
+        let closeWarn = document.createElement("button");
+        closeWarn.setAttribute("type", "button");
+        closeWarn.setAttribute("class", "close");
+        closeWarn.setAttribute("data-dismiss", "alert");
+        closeWarn.setAttribute("aria-label", "Close");
+        closeWarn.innerHTML = `<span aria-hidden="true">&times;</span>`;
+
+        displayAlert.appendChild(closeWarn);
+
+        displayAlertContainer.appendChild(displayAlert);
       }
     </script>
 
